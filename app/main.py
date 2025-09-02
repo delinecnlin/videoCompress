@@ -14,6 +14,9 @@ app = Flask(__name__, template_folder=TEMPLATE_DIR, static_folder=STATIC_DIR)
 # 任务记录 {task_id: {"filename": ...}}
 tasks = {}
 
+# 最大并发任务数量
+MAX_CONCURRENT_TASKS = 2
+
 # 获取输入输出目录
 @app.route("/api/dirs", methods=["GET"])
 def get_dirs():
@@ -60,6 +63,14 @@ def add_compress_task():
         return jsonify({"error": "No filename provided"}), 400
     input_path = os.path.join(config.INPUT_DIR, filename)
     output_path = os.path.join(config.OUTPUT_DIR, filename)
+    # 并发控制
+    running = 0
+    for tid in tasks:
+        state = celery.AsyncResult(tid).state
+        if state in ("PENDING", "STARTED", "PROGRESS"):
+            running += 1
+    if running >= MAX_CONCURRENT_TASKS:
+        return jsonify({"error": "Too many concurrent tasks"}), 429
     task = compress_video.delay(input_path, output_path, codec, crf, extra_args)
     tasks[task.id] = {"filename": filename}
     return jsonify({"task_id": task.id, "message": "Task submitted"})
@@ -80,12 +91,33 @@ def list_tasks():
     task_list = []
     for task_id, info in tasks.items():
         result = celery.AsyncResult(task_id)
+        meta = {}
+        if result.state == "PROGRESS":
+            meta = result.info or {}
+        elif result.state == "SUCCESS":
+            meta = {"progress": 100, "speed": (result.info or {}).get("speed")}
         task_list.append({
             "task_id": task_id,
             "filename": info.get("filename"),
-            "state": result.state
+            "state": result.state,
+            "progress": meta.get("progress", 0),
+            "speed": meta.get("speed")
         })
     return jsonify(task_list)
+
+
+@app.route("/api/max_concurrent", methods=["GET"])
+def get_max_concurrent():
+    return jsonify({"max_concurrent_tasks": MAX_CONCURRENT_TASKS})
+
+
+@app.route("/api/max_concurrent", methods=["POST"])
+def set_max_concurrent():
+    global MAX_CONCURRENT_TASKS
+    data = request.json or {}
+    value = int(data.get("max_concurrent_tasks", MAX_CONCURRENT_TASKS))
+    MAX_CONCURRENT_TASKS = max(1, value)
+    return jsonify({"max_concurrent_tasks": MAX_CONCURRENT_TASKS})
 
 @app.route("/")
 def index():

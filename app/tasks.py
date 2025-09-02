@@ -1,29 +1,83 @@
 import subprocess
+import time
+import os
 from app.celery_worker import celery
 from app.log_utils import log_compress_task
 
+def _probe_duration(path: str) -> float:
+    """Return duration of video in seconds using ffprobe."""
+    try:
+        result = subprocess.run(
+            [
+                "ffprobe",
+                "-v",
+                "error",
+                "-show_entries",
+                "format=duration",
+                "-of",
+                "default=noprint_wrappers=1:nokey=1",
+                path,
+            ],
+            capture_output=True,
+            text=True,
+        )
+        if result.returncode == 0:
+            return float(result.stdout.strip())
+    except Exception:
+        pass
+    return 0.0
+
+
 @celery.task(bind=True)
 def compress_video(self, input_path, output_path, codec="libx264", crf=23, extra_args=None):
-    """
-    input_path: 输入视频路径
-    output_path: 输出视频路径
-    codec: 压缩编码器（如libx264, libx265, libvpx-vp9, libaom-av1等）
-    crf: 压缩质量参数，越小质量越高，文件越大
-    extra_args: 额外FFmpeg参数（如多线程等）
-    """
+    """压缩视频并报告进度和速率。"""
+    duration = _probe_duration(input_path)
     cmd = [
         "ffmpeg",
         "-y",
-        "-i", input_path,
-        "-c:v", codec,
-        "-crf", str(crf),
-        "-threads", "4",  # 默认4线程，可根据实际调整
-        output_path
+        "-i",
+        input_path,
+        "-c:v",
+        codec,
+        "-crf",
+        str(crf),
+        "-threads",
+        "4",  # 默认4线程，可根据实际调整
+        "-progress",
+        "pipe:1",
+        output_path,
     ]
     if extra_args:
         cmd += extra_args
+    start_time = time.time()
+    stdout_lines = []
     try:
-        result = subprocess.run(cmd, capture_output=True, text=True)
+        proc = subprocess.Popen(
+            cmd,
+            stdout=subprocess.PIPE,
+            stderr=subprocess.STDOUT,
+            text=True,
+            bufsize=1,
+            universal_newlines=True,
+        )
+        total_size = 0
+        progress = 0.0
+        for line in proc.stdout:
+            stdout_lines.append(line)
+            line = line.strip()
+            if line.startswith("out_time_ms=") and duration > 0:
+                out_ms = int(line.split("=")[1])
+                progress = min(100.0, out_ms / (duration * 1000) * 100)
+            elif line.startswith("total_size="):
+                total_size = int(line.split("=")[1])
+            elapsed = time.time() - start_time
+            speed = (total_size / elapsed / (1024 * 1024)) if elapsed > 0 else 0.0
+            self.update_state(state="PROGRESS", meta={"progress": progress, "speed": speed})
+        proc.wait()
+        stdout = "".join(stdout_lines)
+        returncode = proc.returncode
+        elapsed = time.time() - start_time
+        speed = (os.path.getsize(output_path) / elapsed / (1024 * 1024)) if returncode == 0 and elapsed > 0 else 0.0
         log_info = {
             "task_id": self.request.id,
             "input_path": input_path,
@@ -31,16 +85,12 @@ def compress_video(self, input_path, output_path, codec="libx264", crf=23, extra
             "codec": codec,
             "crf": crf,
             "extra_args": extra_args,
-            "returncode": result.returncode,
-            "stdout": result.stdout,
-            "stderr": result.stderr
+            "returncode": returncode,
+            "stdout": stdout,
+            "stderr": "",
         }
         log_compress_task(log_info)
-        return {
-            "returncode": result.returncode,
-            "stdout": result.stdout,
-            "stderr": result.stderr
-        }
+        return {"returncode": returncode, "stdout": stdout, "stderr": "", "speed": speed}
     except Exception as e:
         log_info = {
             "task_id": self.request.id,
@@ -50,10 +100,7 @@ def compress_video(self, input_path, output_path, codec="libx264", crf=23, extra
             "crf": crf,
             "extra_args": extra_args,
             "returncode": -1,
-            "error": str(e)
+            "error": str(e),
         }
         log_compress_task(log_info)
-        return {
-            "returncode": -1,
-            "error": str(e)
-        }
+        return {"returncode": -1, "error": str(e)}
