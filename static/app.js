@@ -1,5 +1,20 @@
 let tasks = [];
 
+async function fetchMaxConcurrent() {
+    const res = await fetch("/api/max_concurrent");
+    const data = await res.json();
+    document.getElementById("maxConcurrent").value = data.max_concurrent_tasks;
+}
+
+async function setMaxConcurrent() {
+    const value = parseInt(document.getElementById("maxConcurrent").value);
+    await fetch("/api/max_concurrent", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ max_concurrent_tasks: value })
+    });
+}
+
 async function fetchDirs() {
     const res = await fetch("/api/dirs");
     const data = await res.json();
@@ -35,18 +50,32 @@ async function compressSelected() {
     const codec = document.getElementById("codec").value;
     const crf = parseInt(document.getElementById("crf").value);
     const checkboxes = document.querySelectorAll("#videoList input[type=checkbox]:checked");
+    if (checkboxes.length === 0) {
+        alert("请先选择至少一个视频");
+        return;
+    }
     for (const cb of checkboxes) {
-        const res = await fetch("/api/compress", {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({
-                filename: cb.value,
-                codec: codec,
-                crf: crf
-            })
-        });
-        const data = await res.json();
-        alert(`任务已提交: ${data.task_id}`);
+        try {
+            const res = await fetch("/api/compress", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({
+                    filename: cb.value,
+                    codec: codec,
+                    crf: crf
+                })
+            });
+            if (!res.ok) {
+                const text = await res.text();
+                alert(`任务提交失败: ${res.status} ${text}`);
+                continue;
+            }
+            const data = await res.json();
+            alert(`任务已提交: ${data.task_id}`);
+        } catch (err) {
+            console.error(err);
+            alert("提交任务出错");
+        }
     }
     fetchTasks();
     loadLogs();
@@ -76,7 +105,18 @@ function renderTasks() {
     tbody.innerHTML = "";
     tasks.forEach(t => {
         const tr = document.createElement("tr");
-        tr.innerHTML = `<td>${t.filename}</td><td>${t.state}</td>`;
+        const progress = t.progress || 0;
+        const speed = t.speed ? t.speed.toFixed(2) : "";
+        tr.innerHTML = `
+            <td>${t.filename}</td>
+            <td>${t.state}</td>
+            <td>
+                <div class="progress">
+                    <div class="progress-bar" role="progressbar" style="width: ${progress}%" aria-valuenow="${progress}" aria-valuemin="0" aria-valuemax="100">${progress.toFixed(0)}%</div>
+                </div>
+            </td>
+            <td>${speed}</td>
+        `;
         tbody.appendChild(tr);
     });
 }
@@ -92,6 +132,7 @@ window.onload = function() {
     refreshVideos();
     loadLogs();
     fetchTasks();
+    fetchMaxConcurrent();
     setInterval(() => {
         fetchTasks();
         loadLogs();
