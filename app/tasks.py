@@ -77,9 +77,13 @@ def compress_video(self, input_path, output_path, codec="libx264", crf=23, extra
         stdout = "".join(stdout_lines)
         returncode = proc.returncode
         elapsed = time.time() - start_time
-        speed = (os.path.getsize(output_path) / elapsed / (1024 * 1024)) if returncode == 0 and elapsed > 0 else 0.0
+        input_size = os.path.getsize(input_path) if os.path.exists(input_path) else 0
+        output_size = os.path.getsize(output_path) if os.path.exists(output_path) else 0
+        compression_ratio = (output_size / input_size) if input_size > 0 else 0.0
+        speed = (output_size / elapsed / (1024 * 1024)) if returncode == 0 and elapsed > 0 else 0.0
         log_info = {
             "task_id": self.request.id,
+            "filename": os.path.basename(input_path),
             "input_path": input_path,
             "output_path": output_path,
             "codec": codec,
@@ -88,12 +92,23 @@ def compress_video(self, input_path, output_path, codec="libx264", crf=23, extra
             "returncode": returncode,
             "stdout": stdout,
             "stderr": "",
+            "compression_ratio": compression_ratio,
+            "elapsed": elapsed,
         }
         log_compress_task(log_info)
-        return {"returncode": returncode, "stdout": stdout, "stderr": "", "speed": speed}
+        return {
+            "returncode": returncode,
+            "stdout": stdout,
+            "stderr": "",
+            "speed": speed,
+            "compression_ratio": compression_ratio,
+            "elapsed": elapsed,
+        }
     except Exception as e:
+        elapsed = time.time() - start_time
         log_info = {
             "task_id": self.request.id,
+            "filename": os.path.basename(input_path),
             "input_path": input_path,
             "output_path": output_path,
             "codec": codec,
@@ -101,6 +116,8 @@ def compress_video(self, input_path, output_path, codec="libx264", crf=23, extra
             "extra_args": extra_args,
             "returncode": -1,
             "error": str(e),
+            "compression_ratio": 0.0,
+            "elapsed": elapsed,
         }
         log_compress_task(log_info)
-        return {"returncode": -1, "error": str(e)}
+        return {"returncode": -1, "error": str(e), "elapsed": elapsed}

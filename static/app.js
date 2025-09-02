@@ -1,4 +1,5 @@
 let tasks = [];
+let taskStates = {};
 
 async function fetchMaxConcurrent() {
     const res = await fetch("/api/max_concurrent");
@@ -72,6 +73,7 @@ async function compressSelected() {
             }
             const data = await res.json();
             alert(`任务已提交: ${data.task_id}`);
+            taskStates[data.task_id] = "PENDING";
         } catch (err) {
             console.error(err);
             alert("提交任务出错");
@@ -88,12 +90,15 @@ async function loadLogs() {
     tbody.innerHTML = "";
     logs.reverse().forEach(log => {
         const tr = document.createElement("tr");
+        const ratio = log.compression_ratio != null ? (log.compression_ratio * 100).toFixed(2) + "%" : "";
+        const time = log.elapsed != null ? log.elapsed.toFixed(2) : "";
         tr.innerHTML = `
             <td>${log.timestamp || ""}</td>
-            <td>${log.input_path ? log.input_path.split("/").pop() : ""}</td>
-            <td>${log.output_path ? log.output_path.split("/").pop() : ""}</td>
+            <td>${log.filename || (log.input_path ? log.input_path.split("/").pop() : "")}</td>
             <td>${log.codec || ""}</td>
             <td>${log.crf || ""}</td>
+            <td>${ratio}</td>
+            <td>${time}</td>
             <td>${log.returncode === 0 ? "成功" : "失败"}</td>
         `;
         tbody.appendChild(tr);
@@ -123,7 +128,15 @@ function renderTasks() {
 
 async function fetchTasks() {
     const res = await fetch("/api/tasks");
-    tasks = await res.json();
+    const newTasks = await res.json();
+    newTasks.forEach(t => {
+        const prev = taskStates[t.task_id];
+        if (prev && prev !== "SUCCESS" && t.state === "SUCCESS") {
+            alert(`任务完成: ${t.filename}`);
+        }
+        taskStates[t.task_id] = t.state;
+    });
+    tasks = newTasks;
     renderTasks();
 }
 
@@ -136,5 +149,5 @@ window.onload = function() {
     setInterval(() => {
         fetchTasks();
         loadLogs();
-    }, 3000);
+    }, 5000);
 };
