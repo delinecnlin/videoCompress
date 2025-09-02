@@ -11,6 +11,9 @@ STATIC_DIR = os.path.join(BASE_DIR, "..", "static")
 
 app = Flask(__name__, template_folder=TEMPLATE_DIR, static_folder=STATIC_DIR)
 
+# 任务记录 {task_id: {"filename": ...}}
+tasks = {}
+
 # 获取输入输出目录
 @app.route("/api/dirs", methods=["GET"])
 def get_dirs():
@@ -58,7 +61,8 @@ def add_compress_task():
     input_path = os.path.join(config.INPUT_DIR, filename)
     output_path = os.path.join(config.OUTPUT_DIR, filename)
     task = compress_video.delay(input_path, output_path, codec, crf, extra_args)
-    return jsonify({"task_id": task.id})
+    tasks[task.id] = {"filename": filename}
+    return jsonify({"task_id": task.id, "message": "Task submitted"})
 
 @app.route("/api/task_status/<task_id>", methods=["GET"])
 def get_task_status(task_id):
@@ -69,6 +73,19 @@ def get_task_status(task_id):
 def get_logs():
     logs = read_logs()
     return jsonify(logs)
+
+# 获取所有任务及状态
+@app.route("/api/tasks", methods=["GET"])
+def list_tasks():
+    task_list = []
+    for task_id, info in tasks.items():
+        result = celery.AsyncResult(task_id)
+        task_list.append({
+            "task_id": task_id,
+            "filename": info.get("filename"),
+            "state": result.state
+        })
+    return jsonify(task_list)
 
 @app.route("/")
 def index():

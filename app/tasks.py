@@ -2,8 +2,8 @@ import subprocess
 from app.celery_worker import celery
 from app.log_utils import log_compress_task
 
-@celery.task
-def compress_video(input_path, output_path, codec="libx264", crf=23, extra_args=None):
+@celery.task(bind=True)
+def compress_video(self, input_path, output_path, codec="libx264", crf=23, extra_args=None):
     """
     input_path: 输入视频路径
     output_path: 输出视频路径
@@ -25,6 +25,7 @@ def compress_video(input_path, output_path, codec="libx264", crf=23, extra_args=
     try:
         result = subprocess.run(cmd, capture_output=True, text=True)
         log_info = {
+            "task_id": self.request.id,
             "input_path": input_path,
             "output_path": output_path,
             "codec": codec,
@@ -42,6 +43,7 @@ def compress_video(input_path, output_path, codec="libx264", crf=23, extra_args=
         }
     except Exception as e:
         log_info = {
+            "task_id": self.request.id,
             "input_path": input_path,
             "output_path": output_path,
             "codec": codec,

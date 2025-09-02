@@ -1,4 +1,4 @@
-const tasks = [];
+let tasks = [];
 
 async function fetchDirs() {
     const res = await fetch("/api/dirs");
@@ -46,10 +46,9 @@ async function compressSelected() {
             })
         });
         const data = await res.json();
-        tasks.push({ id: data.task_id, filename: cb.value, state: "PENDING" });
+        alert(`任务已提交: ${data.task_id}`);
     }
-    renderTasks();
-    alert("压缩任务已提交");
+    fetchTasks();
     loadLogs();
 }
 
@@ -82,14 +81,9 @@ function renderTasks() {
     });
 }
 
-async function updateTaskStatuses() {
-    for (const t of tasks) {
-        if (t.state !== "SUCCESS" && t.state !== "FAILURE") {
-            const res = await fetch(`/api/task_status/${t.id}`);
-            const data = await res.json();
-            t.state = data.state;
-        }
-    }
+async function fetchTasks() {
+    const res = await fetch("/api/tasks");
+    tasks = await res.json();
     renderTasks();
 }
 
@@ -97,5 +91,9 @@ window.onload = function() {
     fetchDirs();
     refreshVideos();
     loadLogs();
-    setInterval(updateTaskStatuses, 3000);
+    fetchTasks();
+    setInterval(() => {
+        fetchTasks();
+        loadLogs();
+    }, 3000);
 };

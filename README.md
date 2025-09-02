@@ -45,3 +45,8 @@ celery -A app.celery_worker worker --loglevel=info
 
 The application will be available at `http://127.0.0.1:5001` by default.
 
+## API
+
+- `POST /api/compress` – submit a compression task, returns the task ID and confirmation message.
+- `GET /api/tasks` – list all submitted tasks and their current state.
+
