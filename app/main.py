@@ -4,7 +4,11 @@ from app import config
 from app.tasks import compress_video
 from app.log_utils import read_logs
 
-app = Flask(__name__)
+BASE_DIR = os.path.dirname(os.path.abspath(__file__))
+TEMPLATE_DIR = os.path.join(BASE_DIR, "..", "templates")
+STATIC_DIR = os.path.join(BASE_DIR, "..", "static")
+
+app = Flask(__name__, template_folder=TEMPLATE_DIR, static_folder=STATIC_DIR)
 
 # 获取输入输出目录
 @app.route("/api/dirs", methods=["GET"])
@@ -66,7 +70,7 @@ def index():
 
 @app.route("/static/<path:filename>")
 def static_files(filename):
-    return send_from_directory("static", filename)
+    return send_from_directory(STATIC_DIR, filename)
 
 if __name__ == "__main__":
     app.run(host="0.0.0.0", port=5001)
