@@ -3,6 +3,7 @@ import os
 from app import config
 from app.tasks import compress_video
 from app.log_utils import read_logs
+from app.celery_worker import celery
 
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 TEMPLATE_DIR = os.path.join(BASE_DIR, "..", "templates")
@@ -58,6 +59,11 @@ def add_compress_task():
     output_path = os.path.join(config.OUTPUT_DIR, filename)
     task = compress_video.delay(input_path, output_path, codec, crf, extra_args)
     return jsonify({"task_id": task.id})
+
+@app.route("/api/task_status/<task_id>", methods=["GET"])
+def get_task_status(task_id):
+    result = celery.AsyncResult(task_id)
+    return jsonify({"task_id": task_id, "state": result.state})
 
 @app.route("/api/logs", methods=["GET"])
 def get_logs():

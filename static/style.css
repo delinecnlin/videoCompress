@@ -1,42 +1,5 @@
 body {
     font-family: "Microsoft YaHei", Arial, sans-serif;
-    margin: 30px;
     background: #f8f9fa;
 }
-h1 {
-    color: #2c3e50;
-}
-section {
-    background: #fff;
-    border-radius: 8px;
-    box-shadow: 0 2px 8px #eee;
-    padding: 20px;
-    margin-bottom: 24px;
-}
-label {
-    margin-right: 16px;
-}
-button {
-    margin-left: 8px;
-    padding: 4px 12px;
-    border-radius: 4px;
-    border: 1px solid #bbb;
-    background: #e9ecef;
-    cursor: pointer;
-}
-button:hover {
-    background: #d0d7de;
-}
-table {
-    width: 100%;
-    border-collapse: collapse;
-    margin-top: 10px;
-}
-th, td {
-    padding: 6px 10px;
-    border: 1px solid #ccc;
-    text-align: center;
-}
-th {
-    background: #f1f3f4;
-}
+

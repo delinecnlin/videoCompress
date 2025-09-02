@@ -1,3 +1,5 @@
+const tasks = [];
+
 async function fetchDirs() {
     const res = await fetch("/api/dirs");
     const data = await res.json();
@@ -23,7 +25,8 @@ async function refreshVideos() {
     ul.innerHTML = "";
     files.forEach(f => {
         const li = document.createElement("li");
-        li.innerHTML = `<input type="checkbox" value="${f}"> ${f}`;
+        li.className = "list-group-item";
+        li.innerHTML = `<input class="form-check-input me-1" type="checkbox" value="${f}"> ${f}`;
         ul.appendChild(li);
     });
 }
@@ -33,7 +36,7 @@ async function compressSelected() {
     const crf = parseInt(document.getElementById("crf").value);
     const checkboxes = document.querySelectorAll("#videoList input[type=checkbox]:checked");
     for (const cb of checkboxes) {
-        await fetch("/api/compress", {
+        const res = await fetch("/api/compress", {
             method: "POST",
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify({
@@ -42,7 +45,10 @@ async function compressSelected() {
                 crf: crf
             })
         });
+        const data = await res.json();
+        tasks.push({ id: data.task_id, filename: cb.value, state: "PENDING" });
     }
+    renderTasks();
     alert("压缩任务已提交");
     loadLogs();
 }
@@ -66,8 +72,30 @@ async function loadLogs() {
     });
 }
 
+function renderTasks() {
+    const tbody = document.querySelector("#taskTable tbody");
+    tbody.innerHTML = "";
+    tasks.forEach(t => {
+        const tr = document.createElement("tr");
+        tr.innerHTML = `<td>${t.filename}</td><td>${t.state}</td>`;
+        tbody.appendChild(tr);
+    });
+}
+
+async function updateTaskStatuses() {
+    for (const t of tasks) {
+        if (t.state !== "SUCCESS" && t.state !== "FAILURE") {
+            const res = await fetch(`/api/task_status/${t.id}`);
+            const data = await res.json();
+            t.state = data.state;
+        }
+    }
+    renderTasks();
+}
+
 window.onload = function() {
     fetchDirs();
     refreshVideos();
     loadLogs();
+    setInterval(updateTaskStatuses, 3000);
 };
