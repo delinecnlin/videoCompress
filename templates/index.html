@@ -3,52 +3,95 @@
 <head>
     <meta charset="UTF-8">
     <title>视频压缩服务器管理</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <link rel="stylesheet" href="/static/style.css">
 </head>
 <body>
-    <h1>视频压缩服务器管理</h1>
-    <section>
-        <h2>目录设置</h2>
-        <label>输入目录: <input type="text" id="inputDir" size="50"></label>
-        <button onclick="setDirs()">保存</button>
-        <br>
-        <label>输出目录: <input type="text" id="outputDir" size="50"></label>
-    </section>
-    <section>
-        <h2>待压缩视频列表</h2>
-        <button onclick="refreshVideos()">刷新</button>
-        <ul id="videoList"></ul>
-    </section>
-    <section>
-        <h2>压缩参数</h2>
-        <label>编码器:
-            <select id="codec">
-                <option value="libx264">H.264 (libx264)</option>
-                <option value="libx265">H.265 (libx265)</option>
-                <option value="libvpx-vp9">VP9 (libvpx-vp9)</option>
-                <option value="libaom-av1">AV1 (libaom-av1)</option>
-            </select>
-        </label>
-        <label>CRF: <input type="number" id="crf" value="23" min="0" max="51"></label>
-        <button onclick="compressSelected()">压缩选中视频</button>
-    </section>
-    <section>
-        <h2>压缩日志报表</h2>
-        <button onclick="loadLogs()">刷新日志</button>
-        <table border="1" id="logTable">
-            <thead>
-                <tr>
-                    <th>时间</th>
-                    <th>输入文件</th>
-                    <th>输出文件</th>
-                    <th>编码器</th>
-                    <th>CRF</th>
-                    <th>结果</th>
-                </tr>
-            </thead>
-            <tbody></tbody>
-        </table>
-    </section>
-    <script src="/static/app.js"></script>
+<div class="container my-4">
+    <h1 class="mb-4">视频压缩服务器管理</h1>
+
+    <div class="card mb-4">
+        <div class="card-header">目录设置</div>
+        <div class="card-body">
+            <div class="mb-3">
+                <label class="form-label">输入目录</label>
+                <input type="text" id="inputDir" class="form-control" />
+            </div>
+            <div class="mb-3">
+                <label class="form-label">输出目录</label>
+                <input type="text" id="outputDir" class="form-control" />
+            </div>
+            <button class="btn btn-primary" onclick="setDirs()">保存</button>
+        </div>
+    </div>
+
+    <div class="card mb-4">
+        <div class="card-header">待压缩视频列表</div>
+        <div class="card-body">
+            <button class="btn btn-secondary mb-2" onclick="refreshVideos()">刷新</button>
+            <ul id="videoList" class="list-group"></ul>
+        </div>
+    </div>
+
+    <div class="card mb-4">
+        <div class="card-header">压缩参数</div>
+        <div class="card-body">
+            <div class="mb-3">
+                <label for="codec" class="form-label">编码器</label>
+                <select id="codec" class="form-select" aria-describedby="codecHelp">
+                    <option value="libx264">H.264 (libx264)</option>
+                    <option value="libx265">H.265 (libx265)</option>
+                    <option value="libvpx-vp9">VP9 (libvpx-vp9)</option>
+                    <option value="libaom-av1">AV1 (libaom-av1)</option>
+                </select>
+                <div id="codecHelp" class="form-text">
+                    H.264兼容性最佳；H.265文件更小；VP9与AV1适合网络播放但编码较慢。
+                </div>
+            </div>
+            <div class="mb-3">
+                <label for="crf" class="form-label">CRF</label>
+                <input type="number" id="crf" class="form-control" value="23" min="0" max="51" aria-describedby="crfHelp">
+                <div id="crfHelp" class="form-text">
+                    数值越小质量越高、文件越大，常用范围为18-28。
+                </div>
+            </div>
+            <button class="btn btn-success" onclick="compressSelected()">压缩选中视频</button>
+        </div>
+    </div>
+
+    <div class="card mb-4">
+        <div class="card-header">任务状态</div>
+        <div class="card-body">
+            <table class="table" id="taskTable">
+                <thead>
+                    <tr><th>文件</th><th>状态</th></tr>
+                </thead>
+                <tbody></tbody>
+            </table>
+        </div>
+    </div>
+
+    <div class="card mb-4">
+        <div class="card-header">压缩日志报表</div>
+        <div class="card-body">
+            <button class="btn btn-secondary" onclick="loadLogs()">刷新日志</button>
+            <table class="table table-bordered mt-3" id="logTable">
+                <thead>
+                    <tr>
+                        <th>时间</th>
+                        <th>输入文件</th>
+                        <th>输出文件</th>
+                        <th>编码器</th>
+                        <th>CRF</th>
+                        <th>结果</th>
+                    </tr>
+                </thead>
+                <tbody></tbody>
+            </table>
+        </div>
+    </div>
+</div>
+<script src="/static/app.js"></script>
 </body>
 </html>
+

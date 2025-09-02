@@ -6,7 +6,9 @@ This project provides a simple web interface and API for compressing videos usin
 
 - `app/main.py` – Flask application that exposes HTTP endpoints and serves the web UI.
 - `app/tasks.py` – Celery task that runs FFmpeg to compress videos.
-- `app/celery_worker.py` – Celery configuration using SQLite for both broker and backend.
+- `app/celery_worker.py` – Celery configuration. Uses an in-memory broker by
+  default and runs tasks eagerly; set `CELERY_BROKER_URL` and
+  `CELERY_RESULT_BACKEND` environment variables to use a real broker/backend.
 - `app/config.py` – Default input and output directories used by the service.
 - `templates/` – HTML templates for the user interface.
 - `static/` – JavaScript and CSS assets used by the web UI.
@@ -28,16 +30,17 @@ pytest
 
 ## Running the Service
 
-Start a Celery worker:
-
-```bash
-celery -A app.celery_worker worker --loglevel=info
-```
-
 Run the Flask development server:
 
 ```bash
 python -m app.main
+```
+
+When a real broker is configured via `CELERY_BROKER_URL`, start a Celery worker
+in a separate terminal:
+
+```bash
+celery -A app.celery_worker worker --loglevel=info
 ```
 
 The application will be available at `http://127.0.0.1:5001` by default.
