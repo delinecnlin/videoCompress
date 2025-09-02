@@ -22,3 +22,6 @@ db/
 # OS generated files
 .DS_Store
 Thumbs.db
+# Video directories
+input_videos/
+output_videos/
