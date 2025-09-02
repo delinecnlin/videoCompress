@@ -1,0 +1,54 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <title>视频压缩服务器管理</title>
+    <link rel="stylesheet" href="/static/style.css">
+</head>
+<body>
+    <h1>视频压缩服务器管理</h1>
+    <section>
+        <h2>目录设置</h2>
+        <label>输入目录: <input type="text" id="inputDir" size="50"></label>
+        <button onclick="setDirs()">保存</button>
+        <br>
+        <label>输出目录: <input type="text" id="outputDir" size="50"></label>
+    </section>
+    <section>
+        <h2>待压缩视频列表</h2>
+        <button onclick="refreshVideos()">刷新</button>
+        <ul id="videoList"></ul>
+    </section>
+    <section>
+        <h2>压缩参数</h2>
+        <label>编码器:
+            <select id="codec">
+                <option value="libx264">H.264 (libx264)</option>
+                <option value="libx265">H.265 (libx265)</option>
+                <option value="libvpx-vp9">VP9 (libvpx-vp9)</option>
+                <option value="libaom-av1">AV1 (libaom-av1)</option>
+            </select>
+        </label>
+        <label>CRF: <input type="number" id="crf" value="23" min="0" max="51"></label>
+        <button onclick="compressSelected()">压缩选中视频</button>
+    </section>
+    <section>
+        <h2>压缩日志报表</h2>
+        <button onclick="loadLogs()">刷新日志</button>
+        <table border="1" id="logTable">
+            <thead>
+                <tr>
+                    <th>时间</th>
+                    <th>输入文件</th>
+                    <th>输出文件</th>
+                    <th>编码器</th>
+                    <th>CRF</th>
+                    <th>结果</th>
+                </tr>
+            </thead>
+            <tbody></tbody>
+        </table>
+    </section>
+    <script src="/static/app.js"></script>
+</body>
+</html>
