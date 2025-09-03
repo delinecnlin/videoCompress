@@ -1,10 +1,12 @@
-from flask import Flask, request, jsonify, render_template, send_from_directory
+from flask import Flask, request, jsonify, render_template, send_from_directory, session, redirect, url_for
 import os
 import logging
 from app import config
 from app.tasks import compress_video
 from app.log_utils import read_logs, log_compress_task
 from app.celery_worker import celery
+from functools import wraps
+from werkzeug.security import check_password_hash
 
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 TEMPLATE_DIR = os.path.join(BASE_DIR, "..", "templates")
@@ -12,14 +14,59 @@ STATIC_DIR = os.path.join(BASE_DIR, "..", "static")
 
 app = Flask(__name__, template_folder=TEMPLATE_DIR, static_folder=STATIC_DIR)
 logging.basicConfig(level=logging.DEBUG)
+app.secret_key = config.SECRET_KEY
 
 # 任务记录 {task_id: {"filename": ...}}
 tasks = {}
+
+
+def login_required(view):
+    @wraps(view)
+    def wrapped(*args, **kwargs):
+        if not session.get("user"):
+            return redirect(url_for("login", next=request.path))
+        return view(*args, **kwargs)
+    return wrapped
+
+
+@app.before_request
+def _protect_api():
+    # Allow static files and login/logout routes
+    path = request.path or ""
+    if path.startswith("/static") or path.startswith("/login") or path.startswith("/favicon"):
+        return None
+    # For API endpoints, enforce JSON 401 when not logged in
+    if path.startswith("/api") and not session.get("user"):
+        return jsonify({"error": "Unauthorized"}), 401
+    return None
+
+
+@app.route("/login", methods=["GET", "POST"])
+def login():
+    if request.method == "POST":
+        username = request.form.get("username") or (request.json or {}).get("username")
+        password = request.form.get("password") or (request.json or {}).get("password")
+        if username == config.ADMIN_USERNAME and check_password_hash(config.ADMIN_PASSWORD_HASH, password or ""):
+            session["user"] = username
+            next_url = request.args.get("next") or url_for("index")
+            return redirect(next_url)
+        return render_template("login.html", error="用户名或密码错误")
+    # GET
+    if session.get("user"):
+        return redirect(url_for("index"))
+    return render_template("login.html")
+
+
+@app.route("/logout")
+def logout():
+    session.clear()
+    return redirect(url_for("login"))
 
 # 最大并发任务数量
 MAX_CONCURRENT_TASKS = 2
 
 # 获取输入输出目录
+@login_required
 @app.route("/api/dirs", methods=["GET"])
 def get_dirs():
     return jsonify({
@@ -28,6 +75,7 @@ def get_dirs():
     })
 
 # 设置输入输出目录
+@login_required
 @app.route("/api/dirs", methods=["POST"])
 def set_dirs():
     data = request.json
@@ -45,6 +93,7 @@ def set_dirs():
     })
 
 # 列出输入目录下所有视频文件
+@login_required
 @app.route("/api/input_videos", methods=["GET"])
 def list_input_videos():
     files = []
@@ -54,6 +103,7 @@ def list_input_videos():
     return jsonify(files)
 
 # 添加视频压缩任务
+@login_required
 @app.route("/api/compress", methods=["POST"])
 def add_compress_task():
     data = request.json or {}
@@ -136,17 +186,20 @@ def add_compress_task():
     app.logger.info("Task %s submitted for %s", task.id, filename)
     return jsonify({"task_id": task.id, "message": "Task submitted"})
 
+@login_required
 @app.route("/api/task_status/<task_id>", methods=["GET"])
 def get_task_status(task_id):
     result = celery.AsyncResult(task_id)
     return jsonify({"task_id": task_id, "state": result.state})
 
+@login_required
 @app.route("/api/logs", methods=["GET"])
 def get_logs():
     logs = read_logs()
     return jsonify(logs)
 
 # 获取所有任务及状态
+@login_required
 @app.route("/api/tasks", methods=["GET"])
 def list_tasks():
     task_list = []
@@ -167,11 +220,13 @@ def list_tasks():
     return jsonify(task_list)
 
 
+@login_required
 @app.route("/api/max_concurrent", methods=["GET"])
 def get_max_concurrent():
     return jsonify({"max_concurrent_tasks": MAX_CONCURRENT_TASKS})
 
 
+@login_required
 @app.route("/api/max_concurrent", methods=["POST"])
 def set_max_concurrent():
     global MAX_CONCURRENT_TASKS
@@ -180,6 +235,7 @@ def set_max_concurrent():
     MAX_CONCURRENT_TASKS = max(1, value)
     return jsonify({"max_concurrent_tasks": MAX_CONCURRENT_TASKS})
 
+@login_required
 @app.route("/")
 def index():
     return render_template("index.html")

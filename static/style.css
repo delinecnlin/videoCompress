@@ -94,6 +94,8 @@ body {
     justify-content: center;
     align-items: center;
     z-index: 1050;
+    /* Do not block user interactions while visible */
+    pointer-events: none;
 }
 
 /* DataTables customization */
@@ -105,4 +107,3 @@ table.dataTable thead th {
 table.dataTable tbody tr:hover {
     background-color: rgba(10, 88, 202, 0.05);
 }
-

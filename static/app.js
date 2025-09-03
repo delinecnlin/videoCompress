@@ -26,12 +26,18 @@ function showToast(message, isError = false) {
     toast.show();
 }
 
-async function fetchWithSpinner(url, options) {
-    showSpinner();
+async function fetchWithSpinner(url, options, opts = {}) {
+    const { show = true, delay = 200 } = opts;
+    if (!show) {
+        return fetch(url, options);
+    }
+    let displayed = false;
+    const timer = setTimeout(() => { showSpinner(); displayed = true; }, delay);
     try {
         return await fetch(url, options);
     } finally {
-        hideSpinner();
+        clearTimeout(timer);
+        if (displayed) hideSpinner();
     }
 }
 
@@ -82,11 +88,18 @@ async function refreshVideos() {
 }
 
 async function compressSelected() {
+    const btn = document.getElementById("compressBtn");
+    const btnSpinner = document.getElementById("compressBtnSpinner");
+    // show small spinner on the button but keep page interactive
+    btn.disabled = true;
+    btnSpinner.classList.remove("d-none");
     const codec = document.getElementById("codec").value;
     const crf = parseInt(document.getElementById("crf").value);
     const checkboxes = document.querySelectorAll("#videoList input[type=checkbox]:checked");
     if (checkboxes.length === 0) {
         showToast("请先选择至少一个视频", true);
+        btn.disabled = false;
+        btnSpinner.classList.add("d-none");
         return;
     }
     showToast("任务提交中，请勿重复点击");
@@ -95,6 +108,7 @@ async function compressSelected() {
         tasks.push({ filename: cb.value, state: "PENDING", progress: 0 });
         renderTasks();
         try {
+            // Submit without global overlay; rely on button spinner
             const res = await fetchWithSpinner("/api/compress", {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
@@ -103,7 +117,7 @@ async function compressSelected() {
                     codec: codec,
                     crf: crf
                 })
-            });
+            }, { show: false });
             if (!res.ok) {
                 const text = await res.text();
                 showToast(`任务提交失败: ${res.status} ${text}`, true);
@@ -130,10 +144,14 @@ async function compressSelected() {
     }
     fetchTasks();
     loadLogs();
+    // restore button state
+    btn.disabled = false;
+    btnSpinner.classList.add("d-none");
 }
 
 async function loadLogs() {
-    const res = await fetchWithSpinner("/api/logs");
+    // Background poll: do not show global spinner
+    const res = await fetch("/api/logs");
     const logs = await res.json();
     const tbody = document.querySelector("#logTable tbody");
     tbody.innerHTML = "";
@@ -188,16 +206,20 @@ function renderTasks() {
 }
 
 async function fetchTasks() {
-    const res = await fetchWithSpinner("/api/tasks");
+    // Background poll: do not show global spinner
+    const res = await fetch("/api/tasks");
     const newTasks = await res.json();
-    newTasks.forEach(t => {
-        const prev = taskStates[t.task_id];
-        if (prev && prev !== "SUCCESS" && t.state === "SUCCESS") {
-            showToast(`任务完成: ${t.filename}`);
-        }
-        taskStates[t.task_id] = t.state;
-    });
-    tasks = newTasks;
+    if (Array.isArray(newTasks) && newTasks.length > 0) {
+        newTasks.forEach(t => {
+            const prev = taskStates[t.task_id];
+            if (prev && prev !== "SUCCESS" && t.state === "SUCCESS") {
+                showToast(`任务完成: ${t.filename}`);
+            }
+            taskStates[t.task_id] = t.state;
+        });
+        tasks = newTasks;
+    }
+    // 如果后端暂时返回空列表（同步执行中），保持现有占位任务不被清空
     renderTasks();
 }
 

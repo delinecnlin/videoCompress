@@ -66,7 +66,10 @@
                     数值越小质量越高、文件越大，常用范围为18-28。
                 </div>
             </div>
-            <button class="btn btn-primary-custom" onclick="compressSelected()">压缩选中视频</button>
+            <button id="compressBtn" class="btn btn-primary-custom" onclick="compressSelected()">
+                <span id="compressBtnSpinner" class="spinner-border spinner-border-sm me-2 d-none" role="status" aria-hidden="true"></span>
+                压缩选中视频
+            </button>
         </div>
     </div>
 
@@ -134,4 +137,3 @@
 <script src="/static/app.js"></script>
 </body>
 </html>
-
