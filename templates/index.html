@@ -13,9 +13,9 @@
     </div>
 </nav>
 <main class="container my-4">
-    <h1 class="mb-4">视频压缩服务器管理</h1>
+    <h1 class="header-primary">视频压缩服务器管理</h1>
 
-    <div class="card mb-4">
+    <div class="card card-custom">
         <div class="card-header">目录设置</div>
         <div class="card-body">
             <div class="mb-3">
@@ -26,19 +26,19 @@
                 <label class="form-label">输出目录</label>
                 <input type="text" id="outputDir" class="form-control" />
             </div>
-            <button class="btn btn-primary" onclick="setDirs()">保存</button>
+            <button class="btn btn-primary-custom" onclick="setDirs()">保存</button>
         </div>
     </div>
 
-    <div class="card mb-4">
+    <div class="card card-custom">
         <div class="card-header">待压缩视频列表</div>
         <div class="card-body">
-            <button class="btn btn-secondary mb-2" onclick="refreshVideos()">刷新</button>
+            <button class="btn btn-secondary-custom mb-2" onclick="refreshVideos()">刷新</button>
             <ul id="videoList" class="list-group"></ul>
         </div>
     </div>
 
-    <div class="card mb-4">
+    <div class="card card-custom">
         <div class="card-header">压缩参数</div>
         <div class="card-body">
             <div class="mb-3">
@@ -60,22 +60,22 @@
                     数值越小质量越高、文件越大，常用范围为18-28。
                 </div>
             </div>
-            <button class="btn btn-success" onclick="compressSelected()">压缩选中视频</button>
+            <button class="btn btn-primary-custom" onclick="compressSelected()">压缩选中视频</button>
         </div>
     </div>
 
-    <div class="card mb-4">
+    <div class="card card-custom">
         <div class="card-header">任务设置</div>
         <div class="card-body">
             <div class="mb-3">
                 <label class="form-label">最大并发任务</label>
                 <input type="number" id="maxConcurrent" class="form-control" min="1" />
             </div>
-            <button class="btn btn-primary" onclick="setMaxConcurrent()">保存</button>
+            <button class="btn btn-primary-custom" onclick="setMaxConcurrent()">保存</button>
         </div>
     </div>
 
-    <div class="card mb-4">
+    <div class="card card-custom">
         <div class="card-header">任务状态</div>
         <div class="card-body">
             <table class="table" id="taskTable">
@@ -87,10 +87,10 @@
         </div>
     </div>
 
-    <div class="card mb-4">
+    <div class="card card-custom">
         <div class="card-header">压缩日志报表</div>
         <div class="card-body">
-            <button class="btn btn-secondary" onclick="loadLogs()">刷新日志</button>
+            <button class="btn btn-secondary-custom" onclick="loadLogs()">刷新日志</button>
             <table class="table table-bordered mt-3" id="logTable">
                 <thead>
                     <tr>
