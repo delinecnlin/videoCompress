@@ -1,8 +1,9 @@
 from flask import Flask, request, jsonify, render_template, send_from_directory
 import os
+import logging
 from app import config
 from app.tasks import compress_video
-from app.log_utils import read_logs
+from app.log_utils import read_logs, log_compress_task
 from app.celery_worker import celery
 
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
@@ -10,6 +11,7 @@ TEMPLATE_DIR = os.path.join(BASE_DIR, "..", "templates")
 STATIC_DIR = os.path.join(BASE_DIR, "..", "static")
 
 app = Flask(__name__, template_folder=TEMPLATE_DIR, static_folder=STATIC_DIR)
+logging.basicConfig(level=logging.DEBUG)
 
 # 任务记录 {task_id: {"filename": ...}}
 tasks = {}
@@ -54,15 +56,44 @@ def list_input_videos():
 # 添加视频压缩任务
 @app.route("/api/compress", methods=["POST"])
 def add_compress_task():
-    data = request.json
+    data = request.json or {}
+    app.logger.debug("Compress request payload: %s", data)
     filename = data.get("filename")
     codec = data.get("codec", "libx264")
     crf = data.get("crf", 23)
     extra_args = data.get("extra_args")
     if not filename:
-        return jsonify({"error": "No filename provided"}), 400
+        msg = "No filename provided"
+        app.logger.error(msg)
+        log_compress_task({
+            "task_id": None,
+            "filename": None,
+            "input_path": "",
+            "output_path": "",
+            "codec": codec,
+            "crf": crf,
+            "extra_args": extra_args,
+            "returncode": -1,
+            "error": msg,
+        })
+        return jsonify({"error": msg}), 400
     input_path = os.path.join(config.INPUT_DIR, filename)
     output_path = os.path.join(config.OUTPUT_DIR, filename)
+    if not os.path.exists(input_path):
+        msg = f"Input file not found: {input_path}"
+        app.logger.error(msg)
+        log_compress_task({
+            "task_id": None,
+            "filename": filename,
+            "input_path": input_path,
+            "output_path": output_path,
+            "codec": codec,
+            "crf": crf,
+            "extra_args": extra_args,
+            "returncode": -1,
+            "error": msg,
+        })
+        return jsonify({"error": msg}), 400
     # 并发控制
     running = 0
     for tid in tasks:
@@ -70,9 +101,39 @@ def add_compress_task():
         if state in ("PENDING", "STARTED", "PROGRESS"):
             running += 1
     if running >= MAX_CONCURRENT_TASKS:
-        return jsonify({"error": "Too many concurrent tasks"}), 429
-    task = compress_video.delay(input_path, output_path, codec, crf, extra_args)
+        msg = "Too many concurrent tasks"
+        app.logger.warning(msg)
+        log_compress_task({
+            "task_id": None,
+            "filename": filename,
+            "input_path": input_path,
+            "output_path": output_path,
+            "codec": codec,
+            "crf": crf,
+            "extra_args": extra_args,
+            "returncode": -1,
+            "error": msg,
+        })
+        return jsonify({"error": msg}), 429
+    try:
+        task = compress_video.delay(input_path, output_path, codec, crf, extra_args)
+    except Exception as e:
+        msg = f"Failed to submit task: {e}"
+        app.logger.exception("Failed to submit task")
+        log_compress_task({
+            "task_id": None,
+            "filename": filename,
+            "input_path": input_path,
+            "output_path": output_path,
+            "codec": codec,
+            "crf": crf,
+            "extra_args": extra_args,
+            "returncode": -1,
+            "error": msg,
+        })
+        return jsonify({"error": msg}), 500
     tasks[task.id] = {"filename": filename}
+    app.logger.info("Task %s submitted for %s", task.id, filename)
     return jsonify({"task_id": task.id, "message": "Task submitted"})
 
 @app.route("/api/task_status/<task_id>", methods=["GET"])

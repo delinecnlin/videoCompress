@@ -1,8 +1,11 @@
 import subprocess
 import time
 import os
+import logging
 from app.celery_worker import celery
 from app.log_utils import log_compress_task
+
+logger = logging.getLogger(__name__)
 
 def _probe_duration(path: str) -> float:
     """Return duration of video in seconds using ffprobe."""
@@ -49,6 +52,7 @@ def compress_video(self, input_path, output_path, codec="libx264", crf=23, extra
     ]
     if extra_args:
         cmd += extra_args
+    logger.debug("Running command: %s", " ".join(cmd))
     start_time = time.time()
     stdout_lines = []
     try:
@@ -82,6 +86,7 @@ def compress_video(self, input_path, output_path, codec="libx264", crf=23, extra
         proc.wait()
         stdout = "".join(stdout_lines)
         returncode = proc.returncode
+        logger.info("ffmpeg finished with return code %s", returncode)
         elapsed = time.time() - start_time
         input_size = os.path.getsize(input_path) if os.path.exists(input_path) else 0
         output_size = os.path.getsize(output_path) if os.path.exists(output_path) else 0
@@ -126,4 +131,5 @@ def compress_video(self, input_path, output_path, codec="libx264", crf=23, extra
             "elapsed": elapsed,
         }
         log_compress_task(log_info)
+        logger.exception("Compression failed")
         return {"returncode": -1, "error": str(e), "elapsed": elapsed}
