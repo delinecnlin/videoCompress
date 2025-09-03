@@ -26,6 +26,44 @@ function showToast(message, isError = false) {
     toast.show();
 }
 
+// Build parameters for selected preset
+function getPresetConfig() {
+    const preset = document.getElementById("preset").value;
+    switch (preset) {
+        case "h265_720":
+            return {
+                codec: "libx265",
+                crf: 30,
+                extra_args: ["-vf", "scale=-2:720", "-preset", "slow"]
+            };
+        case "av1_720_extreme":
+            return {
+                codec: "libaom-av1",
+                crf: 45,
+                extra_args: ["-b:v", "0", "-cpu-used", "6", "-row-mt", "1", "-vf", "scale=-2:720"]
+            };
+        case "vp9_720_web":
+            return {
+                codec: "libvpx-vp9",
+                crf: 38,
+                extra_args: ["-b:v", "0", "-row-mt", "1", "-deadline", "good", "-cpu-used", "4", "-vf", "scale=-2:720"]
+            };
+        case "std":
+        default:
+            return {
+                codec: "libx264",
+                crf: 23,
+                extra_args: []
+            };
+    }
+}
+
+function applyPresetToUI() {
+    const cfg = getPresetConfig();
+    document.getElementById("codec").value = cfg.codec;
+    document.getElementById("crf").value = cfg.crf;
+}
+
 async function fetchWithSpinner(url, options, opts = {}) {
     const { show = true, delay = 200 } = opts;
     if (!show) {
@@ -93,8 +131,9 @@ async function compressSelected() {
     // show small spinner on the button but keep page interactive
     btn.disabled = true;
     btnSpinner.classList.remove("d-none");
-    const codec = document.getElementById("codec").value;
-    const crf = parseInt(document.getElementById("crf").value);
+    const manualCodec = document.getElementById("codec").value;
+    const manualCrf = parseInt(document.getElementById("crf").value);
+    const presetCfg = getPresetConfig();
     const checkboxes = document.querySelectorAll("#videoList input[type=checkbox]:checked");
     if (checkboxes.length === 0) {
         showToast("请先选择至少一个视频", true);
@@ -114,8 +153,10 @@ async function compressSelected() {
                 headers: { "Content-Type": "application/json" },
                 body: JSON.stringify({
                     filename: cb.value,
-                    codec: codec,
-                    crf: crf
+                    // Use preset config primarily; fall back to manual if user changed later
+                    codec: presetCfg.codec || manualCodec,
+                    crf: (presetCfg.crf != null ? presetCfg.crf : manualCrf),
+                    extra_args: presetCfg.extra_args || []
                 })
             }, { show: false });
             if (!res.ok) {
@@ -229,6 +270,11 @@ window.onload = function() {
     loadLogs();
     fetchTasks();
     fetchMaxConcurrent();
+    applyPresetToUI();
+    const presetEl = document.getElementById("preset");
+    if (presetEl) {
+        presetEl.addEventListener("change", applyPresetToUI);
+    }
     setInterval(() => {
         fetchTasks();
         loadLogs();

@@ -48,12 +48,24 @@
         <div class="card-header">压缩参数</div>
         <div class="card-body">
             <div class="mb-3">
+                <label for="preset" class="form-label">预设</label>
+                <select id="preset" class="form-select" aria-describedby="presetHelp">
+                    <option value="std">标准质量（H.264，保持分辨率）</option>
+                    <option value="h265_720">高压缩 720p（H.265）</option>
+                    <option value="av1_720_extreme">极限压缩 720p（AV1）★</option>
+                    <option value="vp9_720_web">网页友好 720p（VP9）</option>
+                </select>
+                <div id="presetHelp" class="form-text">
+                    选择一个预设即可使用常用参数组合；无需手动微调。
+                </div>
+            </div>
+            <div class="mb-3">
                 <label for="codec" class="form-label">编码器</label>
                 <select id="codec" class="form-select" aria-describedby="codecHelp">
                     <option value="libx264">H.264 (libx264)</option>
                     <option value="libx265">H.265 (libx265)</option>
                     <option value="libvpx-vp9">VP9 (libvpx-vp9)</option>
-                    <option value="libaom-av1">AV1 (libaom-av1)</option>
+                    <option value="libaom-av1">AV1 (libaom-av1) ★ 极限压缩推荐</option>
                 </select>
                 <div id="codecHelp" class="form-text">
                     H.264兼容性最佳；H.265文件更小；VP9与AV1适合网络播放但编码较慢。

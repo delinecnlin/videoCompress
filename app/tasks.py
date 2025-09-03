@@ -46,12 +46,15 @@ def compress_video(self, input_path, output_path, codec="libx264", crf=23, extra
         str(crf),
         "-threads",
         "4",  # 默认4线程，可根据实际调整
+    ]
+    if extra_args:
+        # 将额外参数放在输出路径之前
+        cmd += [str(x) for x in extra_args]
+    cmd += [
         "-progress",
         "pipe:1",
         output_path,
     ]
-    if extra_args:
-        cmd += extra_args
     logger.debug("Running command: %s", " ".join(cmd))
     start_time = time.time()
     stdout_lines = []
