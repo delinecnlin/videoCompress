@@ -96,3 +96,13 @@ body {
     z-index: 1050;
 }
 
+/* DataTables customization */
+table.dataTable thead th {
+    background-color: var(--primary-color);
+    color: #ffffff;
+}
+
+table.dataTable tbody tr:hover {
+    background-color: rgba(10, 88, 202, 0.05);
+}
+
