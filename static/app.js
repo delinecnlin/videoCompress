@@ -73,7 +73,6 @@ async function compressSelected() {
         showToast("请先选择至少一个视频", "danger");
         return;
     }
-    showToast("任务提交中，请勿重复点击", "info");
     for (const cb of checkboxes) {
         // 先在前端添加占位任务, 以便任务列表立即显示
         tasks.push({ filename: cb.value, state: "PENDING", progress: 0 });
