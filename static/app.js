@@ -72,6 +72,15 @@ async function compressSelected() {
                 continue;
             }
             const data = await res.json();
+            // 将新任务立即加入本地任务列表，避免等待下一次轮询
+            tasks.push({
+                task_id: data.task_id,
+                filename: cb.value,
+                state: "PENDING",
+                progress: 0,
+                speed: null
+            });
+            renderTasks();
             alert(`任务已提交: ${data.task_id}`);
             taskStates[data.task_id] = "PENDING";
         } catch (err) {
