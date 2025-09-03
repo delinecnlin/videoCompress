@@ -66,10 +66,16 @@ def compress_video(self, input_path, output_path, codec="libx264", crf=23, extra
             stdout_lines.append(line)
             line = line.strip()
             if line.startswith("out_time_ms=") and duration > 0:
-                out_ms = int(line.split("=")[1])
+                value = line.split("=", 1)[1]
+                try:
+                    out_ms = int(value)
+                except ValueError:
+                    continue  # value was "N/A" or otherwise invalid
                 progress = min(100.0, out_ms / (duration * 1000) * 100)
             elif line.startswith("total_size="):
-                total_size = int(line.split("=")[1])
+                value = line.split("=", 1)[1]
+                if value.isdigit():
+                    total_size = int(value)
             elapsed = time.time() - start_time
             speed = (total_size / elapsed / (1024 * 1024)) if elapsed > 0 else 0.0
             self.update_state(state="PROGRESS", meta={"progress": progress, "speed": speed})
