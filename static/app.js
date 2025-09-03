@@ -1,5 +1,7 @@
 let tasks = [];
 let taskStates = {};
+let taskDataTable;
+let logDataTable;
 
 async function fetchMaxConcurrent() {
     const res = await fetch("/api/max_concurrent");
@@ -118,6 +120,12 @@ async function loadLogs() {
         `;
         tbody.appendChild(tr);
     });
+    if (logDataTable) {
+        logDataTable.destroy();
+    }
+    logDataTable = $('#logTable').DataTable({
+        order: [],
+    });
 }
 
 function renderTasks() {
@@ -138,6 +146,15 @@ function renderTasks() {
             <td>${speed}</td>
         `;
         tbody.appendChild(tr);
+    });
+    if (taskDataTable) {
+        taskDataTable.destroy();
+    }
+    taskDataTable = $('#taskTable').DataTable({
+        paging: false,
+        searching: false,
+        info: false,
+        order: [],
     });
 }
 

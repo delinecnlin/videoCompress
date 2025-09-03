@@ -82,3 +82,18 @@ body {
     font-size: 0.9rem;
 }
 
+/* DataTables custom styling */
+table.dataTable thead th {
+    background-color: var(--primary-color);
+    color: #ffffff;
+}
+
+table.dataTable tbody tr:hover {
+    background-color: #f1f1f1;
+}
+
+.dataTables_wrapper .dataTables_filter input {
+    border-radius: 4px;
+    padding: 0.25rem;
+}
+
