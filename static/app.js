@@ -17,6 +17,15 @@ function hideSpinner() {
     }
 }
 
+function showToast(message, isError = false) {
+    const toastEl = document.getElementById("appToast");
+    toastEl.classList.remove("text-bg-success", "text-bg-danger");
+    toastEl.classList.add(isError ? "text-bg-danger" : "text-bg-success");
+    toastEl.querySelector(".toast-body").textContent = message;
+    const toast = new bootstrap.Toast(toastEl);
+    toast.show();
+}
+
 async function fetchWithSpinner(url, options) {
     showSpinner();
     try {
@@ -77,10 +86,10 @@ async function compressSelected() {
     const crf = parseInt(document.getElementById("crf").value);
     const checkboxes = document.querySelectorAll("#videoList input[type=checkbox]:checked");
     if (checkboxes.length === 0) {
-        alert("请先选择至少一个视频");
+        showToast("请先选择至少一个视频", true);
         return;
     }
-    alert("任务提交中，请勿重复点击");
+    showToast("任务提交中，请勿重复点击");
     for (const cb of checkboxes) {
         // 先在前端添加占位任务, 以便任务列表立即显示
         tasks.push({ filename: cb.value, state: "PENDING", progress: 0 });
@@ -97,7 +106,7 @@ async function compressSelected() {
             });
             if (!res.ok) {
                 const text = await res.text();
-                alert(`任务提交失败: ${res.status} ${text}`);
+                showToast(`任务提交失败: ${res.status} ${text}`, true);
                 continue;
             }
             const data = await res.json();
@@ -110,13 +119,13 @@ async function compressSelected() {
                 speed: null
             });
             renderTasks();
-            alert(`任务已提交: ${data.task_id}`);
+            showToast(`任务已提交: ${data.task_id}`);
             taskStates[data.task_id] = "PENDING";
             // 更新任务状态, 确保新任务立即可见
             fetchTasks();
         } catch (err) {
             console.error(err);
-            alert("提交任务出错");
+            showToast("提交任务出错", true);
         }
     }
     fetchTasks();
@@ -184,7 +193,7 @@ async function fetchTasks() {
     newTasks.forEach(t => {
         const prev = taskStates[t.task_id];
         if (prev && prev !== "SUCCESS" && t.state === "SUCCESS") {
-            alert(`任务完成: ${t.filename}`);
+            showToast(`任务完成: ${t.filename}`);
         }
         taskStates[t.task_id] = t.state;
     });
