@@ -95,10 +95,26 @@ async function setMaxConcurrent() {
 }
 
 async function fetchDirs() {
-    const res = await fetchWithSpinner("/api/dirs");
-    const data = await res.json();
-    document.getElementById("inputDir").value = data.input_dir;
-    document.getElementById("outputDir").value = data.output_dir;
+    try {
+        const res = await fetchWithSpinner("/api/dirs");
+        if (!res.ok) {
+            // Fallback to project defaults when unauthorized or error
+            document.getElementById("inputDir").value = "input_videos";
+            document.getElementById("outputDir").value = "output_videos";
+            showToast("目录获取失败，已使用默认目录", true);
+            return;
+        }
+        const data = await res.json();
+        const input = data && data.input_dir ? data.input_dir : "input_videos";
+        const output = data && data.output_dir ? data.output_dir : "output_videos";
+        document.getElementById("inputDir").value = input;
+        document.getElementById("outputDir").value = output;
+    } catch (e) {
+        console.error("fetchDirs error", e);
+        document.getElementById("inputDir").value = "input_videos";
+        document.getElementById("outputDir").value = "output_videos";
+        showToast("目录获取异常，已使用默认目录", true);
+    }
 }
 
 async function setDirs() {

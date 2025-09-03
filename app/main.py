@@ -3,7 +3,8 @@ import os
 import logging
 from app import config
 from app.tasks import compress_video
-from app.log_utils import read_logs, log_compress_task
+from app.log_utils import read_logs, log_compress_task, read_pids
+import signal
 from app.celery_worker import celery
 from functools import wraps
 from werkzeug.security import check_password_hash
@@ -35,8 +36,14 @@ def _protect_api():
     path = request.path or ""
     if path.startswith("/static") or path.startswith("/login") or path.startswith("/favicon"):
         return None
-    # For API endpoints, enforce JSON 401 when not logged in
+    # Redirect unauthenticated users visiting index to login
+    if path == "/" and not session.get("user"):
+        return redirect(url_for("login", next=request.path))
+    # For API endpoints, enforce JSON 401 when not logged in, except whitelisted read-only
     if path.startswith("/api") and not session.get("user"):
+        # Whitelist read-only dirs endpoint so UI can render defaults
+        if path == "/api/dirs" and request.method == "GET":
+            return None
         return jsonify({"error": "Unauthorized"}), 401
     return None
 
@@ -190,13 +197,44 @@ def add_compress_task():
 @app.route("/api/task_status/<task_id>", methods=["GET"])
 def get_task_status(task_id):
     result = celery.AsyncResult(task_id)
-    return jsonify({"task_id": task_id, "state": result.state})
+    info = result.info if isinstance(result.info, dict) else {}
+    return jsonify({"task_id": task_id, "state": result.state, "meta": info})
 
 @login_required
 @app.route("/api/logs", methods=["GET"])
 def get_logs():
     logs = read_logs()
     return jsonify(logs)
+
+# 列出由应用记录的正在运行的 ffmpeg 进程（PID）
+@login_required
+@app.route("/api/pids", methods=["GET"])
+def list_pids():
+    return jsonify(read_pids())
+
+# 终止任务（根据 task_id 或 pid）
+@login_required
+@app.route("/api/kill", methods=["POST"])
+def kill_task():
+    data = request.json or {}
+    pid = data.get("pid")
+    task_id = data.get("task_id")
+    if not pid and not task_id:
+        return jsonify({"error": "pid or task_id required"}), 400
+    if not pid and task_id:
+        pids = read_pids()
+        entry = pids.get(str(task_id))
+        if entry:
+            pid = entry.get("pid")
+    if not pid:
+        return jsonify({"error": "pid not found for task_id"}), 404
+    try:
+        os.kill(int(pid), signal.SIGTERM)
+        return jsonify({"message": f"SIGTERM sent to {pid}"})
+    except ProcessLookupError:
+        return jsonify({"error": "process not found"}), 404
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
 
 # 获取所有任务及状态
 @login_required

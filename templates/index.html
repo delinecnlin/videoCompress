@@ -21,21 +21,81 @@
 <main class="container my-4">
     <h1 class="header-primary">视频压缩服务器管理</h1>
 
-    <div class="card card-custom">
-        <div class="card-header">目录设置</div>
-        <div class="card-body">
-            <div class="mb-3">
-                <label class="form-label">输入目录</label>
-                <input type="text" id="inputDir" class="form-control" />
+    <!-- 设置区：一行三列 -->
+    <div class="row g-3">
+        <div class="col-12 col-lg-4">
+            <div class="card card-custom h-100">
+                <div class="card-header">目录设置</div>
+                <div class="card-body">
+                    <div class="mb-3">
+                        <label class="form-label">输入目录</label>
+                        <input type="text" id="inputDir" class="form-control" />
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">输出目录</label>
+                        <input type="text" id="outputDir" class="form-control" />
+                    </div>
+                    <button class="btn btn-primary-custom" onclick="setDirs()">保存</button>
+                </div>
             </div>
-            <div class="mb-3">
-                <label class="form-label">输出目录</label>
-                <input type="text" id="outputDir" class="form-control" />
+        </div>
+        <div class="col-12 col-lg-4">
+            <div class="card card-custom h-100">
+                <div class="card-header">压缩参数</div>
+                <div class="card-body">
+                    <div class="mb-3">
+                        <label for="preset" class="form-label">预设</label>
+                        <select id="preset" class="form-select" aria-describedby="presetHelp">
+                            <option value="std">标准质量（H.264，保持分辨率）</option>
+                            <option value="h265_720">高压缩 720p（H.265）</option>
+                            <option value="av1_720_extreme">极限压缩 720p（AV1）★</option>
+                            <option value="vp9_720_web">网页友好 720p（VP9）</option>
+                        </select>
+                        <div id="presetHelp" class="form-text">
+                            选择一个预设即可使用常用参数组合；无需手动微调。
+                        </div>
+                    </div>
+                    <div class="mb-3">
+                        <label for="codec" class="form-label">编码器</label>
+                        <select id="codec" class="form-select" aria-describedby="codecHelp">
+                            <option value="libx264">H.264 (libx264)</option>
+                            <option value="libx265">H.265 (libx265)</option>
+                            <option value="libvpx-vp9">VP9 (libvpx-vp9)</option>
+                            <option value="libaom-av1">AV1 (libaom-av1) ★ 极限压缩推荐</option>
+                        </select>
+                        <div id="codecHelp" class="form-text">
+                            H.264兼容性最佳；H.265文件更小；VP9与AV1适合网络播放但编码较慢。
+                        </div>
+                    </div>
+                    <div class="mb-3">
+                        <label for="crf" class="form-label">CRF</label>
+                        <input type="number" id="crf" class="form-control" value="23" min="0" max="51" aria-describedby="crfHelp">
+                        <div id="crfHelp" class="form-text">
+                            数值越小质量越高、文件越大，常用范围为18-28。
+                        </div>
+                    </div>
+                    <button id="compressBtn" class="btn btn-primary-custom" onclick="compressSelected()">
+                        <span id="compressBtnSpinner" class="spinner-border spinner-border-sm me-2 d-none" role="status" aria-hidden="true"></span>
+                        压缩选中视频
+                    </button>
+                </div>
             </div>
-            <button class="btn btn-primary-custom" onclick="setDirs()">保存</button>
+        </div>
+        <div class="col-12 col-lg-4">
+            <div class="card card-custom h-100">
+                <div class="card-header">任务设置</div>
+                <div class="card-body">
+                    <div class="mb-3">
+                        <label class="form-label">最大并发任务</label>
+                        <input type="number" id="maxConcurrent" class="form-control" min="1" />
+                    </div>
+                    <button class="btn btn-primary-custom" onclick="setMaxConcurrent()">保存</button>
+                </div>
+            </div>
         </div>
     </div>
 
+    <!-- 视频列表 -->
     <div class="card card-custom">
         <div class="card-header">待压缩视频列表</div>
         <div class="card-body">
@@ -44,58 +104,7 @@
         </div>
     </div>
 
-    <div class="card card-custom">
-        <div class="card-header">压缩参数</div>
-        <div class="card-body">
-            <div class="mb-3">
-                <label for="preset" class="form-label">预设</label>
-                <select id="preset" class="form-select" aria-describedby="presetHelp">
-                    <option value="std">标准质量（H.264，保持分辨率）</option>
-                    <option value="h265_720">高压缩 720p（H.265）</option>
-                    <option value="av1_720_extreme">极限压缩 720p（AV1）★</option>
-                    <option value="vp9_720_web">网页友好 720p（VP9）</option>
-                </select>
-                <div id="presetHelp" class="form-text">
-                    选择一个预设即可使用常用参数组合；无需手动微调。
-                </div>
-            </div>
-            <div class="mb-3">
-                <label for="codec" class="form-label">编码器</label>
-                <select id="codec" class="form-select" aria-describedby="codecHelp">
-                    <option value="libx264">H.264 (libx264)</option>
-                    <option value="libx265">H.265 (libx265)</option>
-                    <option value="libvpx-vp9">VP9 (libvpx-vp9)</option>
-                    <option value="libaom-av1">AV1 (libaom-av1) ★ 极限压缩推荐</option>
-                </select>
-                <div id="codecHelp" class="form-text">
-                    H.264兼容性最佳；H.265文件更小；VP9与AV1适合网络播放但编码较慢。
-                </div>
-            </div>
-            <div class="mb-3">
-                <label for="crf" class="form-label">CRF</label>
-                <input type="number" id="crf" class="form-control" value="23" min="0" max="51" aria-describedby="crfHelp">
-                <div id="crfHelp" class="form-text">
-                    数值越小质量越高、文件越大，常用范围为18-28。
-                </div>
-            </div>
-            <button id="compressBtn" class="btn btn-primary-custom" onclick="compressSelected()">
-                <span id="compressBtnSpinner" class="spinner-border spinner-border-sm me-2 d-none" role="status" aria-hidden="true"></span>
-                压缩选中视频
-            </button>
-        </div>
-    </div>
-
-    <div class="card card-custom">
-        <div class="card-header">任务设置</div>
-        <div class="card-body">
-            <div class="mb-3">
-                <label class="form-label">最大并发任务</label>
-                <input type="number" id="maxConcurrent" class="form-control" min="1" />
-            </div>
-            <button class="btn btn-primary-custom" onclick="setMaxConcurrent()">保存</button>
-        </div>
-    </div>
-
+    <!-- 任务状态（紧跟在视频列表之后） -->
     <div class="card card-custom">
         <div class="card-header">任务状态</div>
         <div class="card-body">

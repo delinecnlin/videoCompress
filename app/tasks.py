@@ -3,7 +3,7 @@ import time
 import os
 import logging
 from app.celery_worker import celery
-from app.log_utils import log_compress_task
+from app.log_utils import log_compress_task, register_pid, unregister_pid
 
 logger = logging.getLogger(__name__)
 
@@ -67,8 +67,18 @@ def compress_video(self, input_path, output_path, codec="libx264", crf=23, extra
             bufsize=1,
             universal_newlines=True,
         )
+        # 记录 PID 以便外部查询/管理
+        try:
+            register_pid(getattr(self.request, "id", None), os.path.basename(input_path), proc.pid)
+        except Exception:
+            pass
         total_size = 0
         progress = 0.0
+        # 报告初始状态，包含 PID
+        try:
+            self.update_state(state="PROGRESS", meta={"progress": 0.0, "speed": 0.0, "pid": proc.pid})
+        except Exception:
+            pass
         for line in proc.stdout:
             stdout_lines.append(line)
             line = line.strip()
@@ -110,6 +120,10 @@ def compress_video(self, input_path, output_path, codec="libx264", crf=23, extra
             "elapsed": elapsed,
         }
         log_compress_task(log_info)
+        try:
+            unregister_pid(getattr(self.request, "id", None))
+        except Exception:
+            pass
         return {
             "returncode": returncode,
             "stdout": stdout,
@@ -134,5 +148,9 @@ def compress_video(self, input_path, output_path, codec="libx264", crf=23, extra
             "elapsed": elapsed,
         }
         log_compress_task(log_info)
+        try:
+            unregister_pid(getattr(self.request, "id", None))
+        except Exception:
+            pass
         logger.exception("Compression failed")
         return {"returncode": -1, "error": str(e), "elapsed": elapsed}
