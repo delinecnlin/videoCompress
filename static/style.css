@@ -1,6 +1,65 @@
+/* Global color palette and typography */
+:root {
+    --primary-color: #0a58ca; /* dark blue for strong contrast */
+    --secondary-color: #495057; /* dark grey for secondary actions */
+    --font-stack: 'Segoe UI', 'Microsoft YaHei', Arial, sans-serif;
+}
+
 body {
-    font-family: "Microsoft YaHei", Arial, sans-serif;
+    font-family: var(--font-stack);
     background: #f8f9fa;
+}
+
+/* Typography */
+.header-primary {
+    color: var(--primary-color);
+    font-family: var(--font-stack);
+    margin-bottom: 1rem;
+}
+
+/* Buttons */
+.btn-primary-custom {
+    background-color: var(--primary-color);
+    color: #ffffff;
+    border: none;
+    padding: 0.5rem 1rem;
+    margin-right: 0.5rem;
+    font-family: var(--font-stack);
+}
+
+.btn-primary-custom:hover {
+    background-color: #084298;
+}
+
+.btn-secondary-custom {
+    background-color: var(--secondary-color);
+    color: #ffffff;
+    border: none;
+    padding: 0.5rem 1rem;
+    margin-right: 0.5rem;
+    font-family: var(--font-stack);
+}
+
+.btn-secondary-custom:hover {
+    background-color: #343a40;
+}
+
+/* Cards */
+.card-custom {
+    border: 1px solid var(--primary-color);
+    border-radius: 0.25rem;
+    margin-bottom: 1.5rem;
+    font-family: var(--font-stack);
+}
+
+.card-custom .card-header {
+    background-color: var(--primary-color);
+    color: #ffffff;
+    font-weight: 600;
+}
+
+.card-custom .card-body {
+    padding: 1rem;
 }
 
 .navbar-custom {
