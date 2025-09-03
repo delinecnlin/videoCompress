@@ -97,3 +97,15 @@ table.dataTable tbody tr:hover {
     padding: 0.25rem;
 }
 
+.dataTables_wrapper .dataTables_paginate .paginate_button {
+    border-radius: 4px;
+    padding: 0.25rem 0.5rem;
+}
+
+.dataTables_wrapper .dataTables_paginate .paginate_button.current,
+.dataTables_wrapper .dataTables_paginate .paginate_button:hover {
+    background-color: var(--primary-color);
+    color: #ffffff !important;
+    border: none;
+}
+

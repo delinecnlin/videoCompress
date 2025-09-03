@@ -103,59 +103,53 @@ async function compressSelected() {
 async function loadLogs() {
     const res = await fetch("/api/logs");
     const logs = await res.json();
-    const tbody = document.querySelector("#logTable tbody");
-    tbody.innerHTML = "";
-    logs.reverse().forEach(log => {
-        const tr = document.createElement("tr");
+    const rows = logs.reverse().map(log => {
         const ratio = log.compression_ratio != null ? (log.compression_ratio * 100).toFixed(2) + "%" : "";
         const time = log.elapsed != null ? log.elapsed.toFixed(2) : "";
-        tr.innerHTML = `
-            <td>${log.timestamp || ""}</td>
-            <td>${log.filename || (log.input_path ? log.input_path.split("/").pop() : "")}</td>
-            <td>${log.codec || ""}</td>
-            <td>${log.crf || ""}</td>
-            <td>${ratio}</td>
-            <td>${time}</td>
-            <td>${log.returncode === 0 ? "成功" : "失败"}</td>
-        `;
-        tbody.appendChild(tr);
+        return [
+            log.timestamp || "",
+            log.filename || (log.input_path ? log.input_path.split("/").pop() : ""),
+            log.codec || "",
+            log.crf || "",
+            ratio,
+            time,
+            log.returncode === 0 ? "成功" : "失败"
+        ];
     });
-    if (logDataTable) {
-        logDataTable.destroy();
+    if (!logDataTable) {
+        logDataTable = $('#logTable').DataTable({
+            order: [],
+            data: rows
+        });
+    } else {
+        logDataTable.clear();
+        logDataTable.rows.add(rows).draw();
     }
-    logDataTable = $('#logTable').DataTable({
-        order: [],
-    });
 }
 
 function renderTasks() {
-    const tbody = document.querySelector("#taskTable tbody");
-    tbody.innerHTML = "";
-    tasks.forEach(t => {
-        const tr = document.createElement("tr");
+    const rows = tasks.map(t => {
         const progress = t.progress || 0;
         const speed = t.speed ? t.speed.toFixed(2) : "";
-        tr.innerHTML = `
-            <td>${t.filename}</td>
-            <td>${t.state}</td>
-            <td>
-                <div class="progress">
-                    <div class="progress-bar" role="progressbar" style="width: ${progress}%" aria-valuenow="${progress}" aria-valuemin="0" aria-valuemax="100">${progress.toFixed(0)}%</div>
-                </div>
-            </td>
-            <td>${speed}</td>
-        `;
-        tbody.appendChild(tr);
+        return [
+            t.filename,
+            t.state,
+            `<div class="progress"><div class="progress-bar" role="progressbar" style="width: ${progress}%" aria-valuenow="${progress}" aria-valuemin="0" aria-valuemax="100">${progress.toFixed(0)}%</div></div>`,
+            speed
+        ];
     });
-    if (taskDataTable) {
-        taskDataTable.destroy();
+    if (!taskDataTable) {
+        taskDataTable = $('#taskTable').DataTable({
+            paging: false,
+            searching: false,
+            info: false,
+            order: [],
+            data: rows
+        });
+    } else {
+        taskDataTable.clear();
+        taskDataTable.rows.add(rows).draw();
     }
-    taskDataTable = $('#taskTable').DataTable({
-        paging: false,
-        searching: false,
-        info: false,
-        order: [],
-    });
 }
 
 async function fetchTasks() {
