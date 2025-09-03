@@ -55,7 +55,11 @@ async function compressSelected() {
         alert("请先选择至少一个视频");
         return;
     }
+    alert("任务提交中，请勿重复点击");
     for (const cb of checkboxes) {
+        // 先在前端添加占位任务, 以便任务列表立即显示
+        tasks.push({ filename: cb.value, state: "PENDING", progress: 0 });
+        renderTasks();
         try {
             const res = await fetch("/api/compress", {
                 method: "POST",
@@ -83,6 +87,8 @@ async function compressSelected() {
             renderTasks();
             alert(`任务已提交: ${data.task_id}`);
             taskStates[data.task_id] = "PENDING";
+            // 更新任务状态, 确保新任务立即可见
+            fetchTasks();
         } catch (err) {
             console.error(err);
             alert("提交任务出错");
