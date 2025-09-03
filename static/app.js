@@ -1,15 +1,38 @@
 let tasks = [];
 let taskStates = {};
 
+let pendingFetches = 0;
+
+function showSpinner() {
+    pendingFetches++;
+    document.getElementById("spinner").style.display = "flex";
+}
+
+function hideSpinner() {
+    pendingFetches = Math.max(0, pendingFetches - 1);
+    if (pendingFetches === 0) {
+        document.getElementById("spinner").style.display = "none";
+    }
+}
+
+async function fetchWithSpinner(url, options) {
+    showSpinner();
+    try {
+        return await fetch(url, options);
+    } finally {
+        hideSpinner();
+    }
+}
+
 async function fetchMaxConcurrent() {
-    const res = await fetch("/api/max_concurrent");
+    const res = await fetchWithSpinner("/api/max_concurrent");
     const data = await res.json();
     document.getElementById("maxConcurrent").value = data.max_concurrent_tasks;
 }
 
 async function setMaxConcurrent() {
     const value = parseInt(document.getElementById("maxConcurrent").value);
-    await fetch("/api/max_concurrent", {
+    await fetchWithSpinner("/api/max_concurrent", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ max_concurrent_tasks: value })
@@ -17,7 +40,7 @@ async function setMaxConcurrent() {
 }
 
 async function fetchDirs() {
-    const res = await fetch("/api/dirs");
+    const res = await fetchWithSpinner("/api/dirs");
     const data = await res.json();
     document.getElementById("inputDir").value = data.input_dir;
     document.getElementById("outputDir").value = data.output_dir;
@@ -26,7 +49,7 @@ async function fetchDirs() {
 async function setDirs() {
     const inputDir = document.getElementById("inputDir").value;
     const outputDir = document.getElementById("outputDir").value;
-    await fetch("/api/dirs", {
+    await fetchWithSpinner("/api/dirs", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ input_dir: inputDir, output_dir: outputDir })
@@ -35,7 +58,7 @@ async function setDirs() {
 }
 
 async function refreshVideos() {
-    const res = await fetch("/api/input_videos");
+    const res = await fetchWithSpinner("/api/input_videos");
     const files = await res.json();
     const ul = document.getElementById("videoList");
     ul.innerHTML = "";
@@ -61,7 +84,7 @@ async function compressSelected() {
         tasks.push({ filename: cb.value, state: "PENDING", progress: 0 });
         renderTasks();
         try {
-            const res = await fetch("/api/compress", {
+            const res = await fetchWithSpinner("/api/compress", {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
                 body: JSON.stringify({
@@ -99,7 +122,7 @@ async function compressSelected() {
 }
 
 async function loadLogs() {
-    const res = await fetch("/api/logs");
+    const res = await fetchWithSpinner("/api/logs");
     const logs = await res.json();
     const tbody = document.querySelector("#logTable tbody");
     tbody.innerHTML = "";
@@ -142,7 +165,7 @@ function renderTasks() {
 }
 
 async function fetchTasks() {
-    const res = await fetch("/api/tasks");
+    const res = await fetchWithSpinner("/api/tasks");
     const newTasks = await res.json();
     newTasks.forEach(t => {
         const prev = taskStates[t.task_id];
