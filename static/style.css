@@ -3,3 +3,23 @@ body {
     background: #f8f9fa;
 }
 
+.navbar-custom {
+    background-color: #343a40;
+}
+
+.navbar-custom .navbar-brand {
+    color: #ffffff;
+    font-weight: 600;
+}
+
+.navbar-custom .navbar-brand:hover {
+    color: #e9ecef;
+}
+
+.footer-custom {
+    background-color: #343a40;
+    color: #ffffff;
+    padding: 1rem 0;
+    font-size: 0.9rem;
+}
+
